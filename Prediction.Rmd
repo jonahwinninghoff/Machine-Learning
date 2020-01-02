@@ -1,0 +1,53 @@
+---
+title: "First Machine Learning"
+author: "Jonah Winninghoff"
+date: "1/1/2020"
+output: html_document
+---
+This coding process is seemingly self-explanatory. The accuracy for random forest in validation is highest of all so that cross-validation is expected to be that accuracy.
+```{r echo=TRUE}
+## Download and obtain training and testing files
+download.file(
+  "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+  destfile = "training",method = "curl",
+  na.strings=c("NA","#DIV/0!",""))
+training <- read.csv("training", header = TRUE, 
+  na.strings=c("NA","#DIV/0!",""))
+
+## Move testing aside for cross-validation purpose.
+testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", 
+  header = TRUE, na.strings=c("NA","#DIV/0!",""))
+
+## Obtain tools and set up the mytraining and mytesting
+## from training
+library(caret); library(rattle); library(rpart) 
+library(randomForest);library(ggplot2);library(lattice)
+
+inTrain <- createDataPartition(training$classe, p=.7,
+  list=FALSE)
+mytesting <- training[-inTrain,]
+mytraining <- training[inTrain,]
+
+## Clean up the dataset
+library(dplyr)
+select(mytraining,8:10,37:39,46:48,60:62,84:86,
+  113:115,121:124,140,151:153,158:160)->Tidymytraining
+select(mytesting,8:10,37:39,46:48,60:62,84:86,
+  113:115,121:124,140,151:153,
+  158:160)->Tidymytesting ## Done so without looking inside
+
+## Exploratory data analysis on training
+str(Tidymytraining)
+randomForest(classe~.,data=Tidymytraining,prox=TRUE)->modrf
+predict(modrf,Tidymytraining)->predrf
+confusionMatrix(predrf,Tidymytraining$classe)$overall[1]
+
+train(classe~.,data=Tidymytraining,
+  method="rpart") -> modrpart
+predict(modrpart,Tidymytraining)->predrpart
+confusionMatrix(predrpart,Tidymytraining$classe)$overall[1]
+
+## Cross-validation
+predict(modrf,Tidymytesting)->predrf
+confusionMatrix(predrf,Tidymytesting$classe)$overall[1]
+```
